@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Emotion Detection</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <h1>🎭 Facial Emotion Detection</h1>
+      <p>CNN trained on FER-2013 · 5 Emotion Classes</p>
+    </header>
+
+    <div class="feed-box">
+      <img src="/video_feed" id="stream" alt="Webcam Stream"/>
+    </div>
+
+    <div class="legend">
+      <span class="dot happy"></span>Happy
+      <span class="dot sad"></span>Sad
+      <span class="dot angry"></span>Angry
+      <span class="dot fear"></span>Fear
+      <span class="dot surprise"></span>Surprise
+    </div>
+  </div>
+</body>
+</html>

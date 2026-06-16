@@ -1,0 +1,7 @@
+emotion-env/
+__pycache__/
+*.pyc
+dataset/
+model/*.h5
+*.keras
+.env
