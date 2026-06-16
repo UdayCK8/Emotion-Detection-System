@@ -4,6 +4,8 @@ from tf_keras.models import Sequential
 from tf_keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 import os
 
+
+
 EMOTIONS = ['angry', 'fear', 'happy', 'sad', 'surprise']
 IMG_SIZE = 48
 BATCH = 32
@@ -34,6 +36,7 @@ test_data = test_gen.flow_from_directory(
     class_mode='categorical'
 )
 
+# CNN Model
 model = Sequential([
     Conv2D(32, (3,3), activation='relu', input_shape=(48,48,1)),
     BatchNormalization(),
@@ -68,5 +71,5 @@ model.fit(
 )
 
 os.makedirs('model', exist_ok=True)
-model.save('model/emotion_cnn.h5')
-print("✅ Model saved to model/emotion_cnn.h5")
+model.save('model/emotion_cnn.keras')
+print("✅ Model saved to model/emotion_cnn.keras")

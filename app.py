@@ -1,80 +1,169 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, request
 import cv2
-import numpy as np
-from tf_keras.models import load_model  # if you installed tf-keras
+import os
+import webbrowser
+from threading import Timer
+from deepface import DeepFace
 
 app = Flask(__name__)
 
-model = load_model('model/emotion_cnn.h5')
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-EMOTIONS = ['Angry', 'Fear', 'Happy', 'Sad', 'Surprise']
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-COLORS = {
-    'Happy':    (0, 220, 100),
-    'Sad':      (200, 100, 50),
-    'Angry':    (50, 50, 220),
-    'Fear':     (180, 80, 220),
-    'Surprise': (50, 200, 220)
-}
+camera = cv2.VideoCapture(0)
+
+# ----------------------------------------------------
+# Auto Open Browser
+# ----------------------------------------------------
+
+def open_browser():
+    webbrowser.open("http://127.0.0.1:5000")
+
+# ----------------------------------------------------
+# Webcam Emotion Detection
+# ----------------------------------------------------
 
 def generate_frames():
-    cap = cv2.VideoCapture(0)
 
     while True:
-        success, frame = cap.read()
+
+        success, frame = camera.read()
+
         if not success:
             break
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+        try:
 
-        for (x, y, w, h) in faces:
-            roi = gray[y:y+h, x:x+w]
-            roi = cv2.resize(roi, (48, 48))
-            roi = roi.astype('float32') / 255.0
-            roi = np.expand_dims(roi, axis=(0, -1))
+            results = DeepFace.analyze(
+                frame,
+                actions=['emotion'],
+                enforce_detection=False
+            )
 
-            preds = model.predict(roi, verbose=0)[0]
-            emotion = EMOTIONS[np.argmax(preds)]
-            confidence = int(np.max(preds) * 100)
-            color = COLORS.get(emotion, (255, 255, 255))
+            if isinstance(results, list):
+                results = results[0]
 
-            cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+            emotion = results["dominant_emotion"]
 
-            label = f"{emotion}  {confidence}%"
-            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-            cv2.rectangle(frame, (x, y - th - 14), (x + tw + 10, y), color, -1)
-            cv2.putText(frame, label, (x + 5, y - 6),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(
+                frame,
+                f"Emotion: {emotion}",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                2
+            )
 
-            bar_x = x + w + 10
-            if bar_x + 160 < frame.shape[1]:
-                for i, (emo, prob) in enumerate(zip(EMOTIONS, preds)):
-                    bar_y = y + i * 24
-                    bar_len = int(prob * 140)
-                    emo_color = COLORS.get(emo, (200, 200, 200))
-                    cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_len, bar_y + 16), emo_color, -1)
-                    cv2.putText(frame, f"{emo[:3]} {int(prob*100)}%",
-                                (bar_x + bar_len + 4, bar_y + 13),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (220, 220, 220), 1)
+        except Exception as e:
+            print(e)
 
-        _, buffer = cv2.imencode('.jpg', frame)
-        frame_bytes = buffer.tobytes()
+        ret, buffer = cv2.imencode(".jpg", frame)
 
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        frame = buffer.tobytes()
 
-    cap.release()
+        yield (
+            b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' +
+            frame +
+            b'\r\n'
+        )
 
-@app.route('/')
+# ----------------------------------------------------
+# Home Page
+# ----------------------------------------------------
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/video_feed')
+# ----------------------------------------------------
+# Webcam Feed
+# ----------------------------------------------------
+
+@app.route("/video_feed")
 def video_feed():
-    return Response(generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(
+        generate_frames(),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# ----------------------------------------------------
+# Upload Image Detection
+# ----------------------------------------------------
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+
+    emotion = None
+
+    if request.method == "POST":
+
+        if "image" not in request.files:
+            return render_template(
+                "upload.html",
+                emotion="No file selected"
+            )
+
+        file = request.files["image"]
+
+        if file.filename == "":
+            return render_template(
+                "upload.html",
+                emotion="No file selected"
+            )
+
+        filepath = os.path.join(
+            app.config["UPLOAD_FOLDER"],
+            file.filename
+        )
+
+        file.save(filepath)
+
+        try:
+
+            result = DeepFace.analyze(
+                img_path=filepath,
+                actions=["emotion"],
+                enforce_detection=False
+            )
+
+            if isinstance(result, list):
+                result = result[0]
+
+            emotion = result["dominant_emotion"]
+
+        except Exception as e:
+            emotion = str(e)
+
+    return render_template(
+        "upload.html",
+        emotion=emotion
+    )
+
+# ----------------------------------------------------
+# Health Check
+# ----------------------------------------------------
+
+@app.route("/health")
+def health():
+    return {
+        "status": "running",
+        "camera": camera.isOpened()
+    }
+
+# ----------------------------------------------------
+# Main
+# ----------------------------------------------------
+
+if __name__ == "__main__":
+
+    Timer(2, open_browser).start()
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=False
+    )

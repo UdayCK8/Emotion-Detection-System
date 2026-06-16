@@ -1,28 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Emotion Detection</title>
-  <link rel="stylesheet" href="/static/style.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection - Webcam</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-  <div class="wrapper">
+
+<div class="wrapper">
+
     <header>
-      <h1>🎭 Facial Emotion Detection</h1>
-      <p>CNN trained on FER-2013 · 5 Emotion Classes</p>
+        <h1>🎭 Facial Emotion Detection</h1>
+        <p>Real-Time Webcam Emotion Recognition</p>
     </header>
 
-    <div class="feed-box">
-      <img src="/video_feed" id="stream" alt="Webcam Stream"/>
+    <div class="nav-buttons">
+        <a href="/">
+            <button class="nav-btn">📹 Webcam Detection</button>
+        </a>
+
+        <a href="/upload">
+            <button class="nav-btn">📸 Upload Image</button>
+        </a>
     </div>
 
-    <div class="legend">
-      <span class="dot happy"></span>Happy
-      <span class="dot sad"></span>Sad
-      <span class="dot angry"></span>Angry
-      <span class="dot fear"></span>Fear
-      <span class="dot surprise"></span>Surprise
+    <div class="feed-box">
+        <img src="{{ url_for('video_feed') }}"
+             id="stream"
+             alt="Webcam Stream">
     </div>
-  </div>
+
+</div>
+
 </body>
 </html>

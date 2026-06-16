@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection - Upload</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <header>
+        <h1>📸 Image Emotion Detection</h1>
+        <p>Upload an image and detect emotions</p>
+    </header>
+
+    <div class="nav-buttons">
+        <a href="/">
+            <button class="nav-btn">📹 Webcam Detection</button>
+        </a>
+
+        <a href="/upload">
+            <button class="nav-btn">📸 Upload Image</button>
+        </a>
+    </div>
+
+    <div class="upload-box">
+
+        <form method="POST"
+              enctype="multipart/form-data">
+
+            <input type="file"
+                   name="image"
+                   accept="image/*"
+                   required>
+
+            <button type="submit">
+                Detect Emotion
+            </button>
+
+        </form>
+
+        {% if emotion %}
+        <div class="result">
+            <h2>Detected Emotion:</h2>
+            <h1>{{ emotion }}</h1>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+</html>
